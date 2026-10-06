@@ -117,6 +117,7 @@ Pygments==2.21.0
 pyparsing==3.3.3
 pytest==9.1.1
 python-dateutil==2.9.0.post0
+python-docx==1.2.0
 python-dotenv==1.2.4
 python-json-logger==4.2.0
 pytz==2026.4

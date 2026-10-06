@@ -139,6 +139,7 @@ def build_finetune_settings(*, args: argparse.Namespace) -> ExperimentSettings:
         save_adapters=not args.no_save_adapters,
         save_full_model=not args.no_save_full_model,
         oom_retries=args.oom_retries,
+        micro_batch_size=args.micro_batch_size,
     )
 
 
@@ -259,6 +260,12 @@ def add_finetune_parser(*, subparsers: argparse._SubParsersAction) -> None:
         type=positive_int,
         default=1000,
         help="Number of test rows evaluated per dataset.",
+    )
+    parser.add_argument(
+        "--micro-batch-size",
+        type=positive_int,
+        default=8,
+        help="Micro batch per step. Gradient accumulation keeps the global batch at 128.",
     )
     parser.add_argument(
         "--oom-retries",

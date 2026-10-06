@@ -82,15 +82,17 @@ bash scripts/test.sh
 
 ## Results
 
+1,000 test samples per dataset, 2 GPUs (RTX 3090 + RTX A5000) with DataParallel, run `outputs/2026-10-05_notebook_q1_q3/`. Report: `docs/Asg1_314540080.pdf`.
+
 | Model | Rank | Component | GSM8K | MATH | Train (min) |
 |---|---|---|---|---|---|
-| Llama-3.2-1B (no fine-tune) | | | 0.035 | 0.001 | |
-| PiSSA | 16 | `default` | | | |
-| PiSSA | 64 | `default` | | | |
-| PiSSA | 256 | `default` | | | |
-| PiSSA | 16 | `p25` | 0.121 | 0.034 | 24.4 |
-| PiSSA | 16 | `p50` | 0.119 | 0.021 | 35.2 |
-| PiSSA | 16 | `bottom` | | | |
+| Llama-3.2-1B (no fine-tune) |  |  | 0.035 | 0.001 |  |
+| PiSSA | 16 | `default` | 0.157 | 0.037 | 77.1 |
+| PiSSA | 64 | `default` | 0.204 | 0.046 | 83.7 |
+| PiSSA | 256 | `default` | 0.270 | 0.056 | 87.2 |
+| PiSSA | 16 | `p25` | 0.128 | 0.032 | 80.4 |
+| PiSSA | 16 | `p50` | 0.115 | 0.022 | 72.7 |
+| PiSSA | 16 | `bottom` | 0.116 | 0.024 | 68.5 |
 
 | Layer | Module | Minimum rank (50% energy) |
 |---|---|---|
