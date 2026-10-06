@@ -11,3 +11,5 @@ __pycache__/
 **/metastore_db/
 **/derby.log
 **/*.zip
+hw1/docs/report
+hw1/docs/Asg1_314540080.pdf
