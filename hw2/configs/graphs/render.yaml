@@ -1,0 +1,7 @@
+name: q1_graphs
+data:
+  dataset_dir: ${BIG_DATA_NYCU_STORAGE}/data/hw2/assignment2
+github_user_ids: [22996444, 28983449]
+start_time: "2026-09-15 00:00:00"
+end_time: "2026-09-17 00:00:00"
+max_text_length: 28

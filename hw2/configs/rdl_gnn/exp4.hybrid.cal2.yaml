@@ -1,0 +1,20 @@
+name: rdl_gnn_exp4_hybrid_cal2
+model_type: rdl_gnn
+sampling:
+  train_start: "2026-06-03 16:00:00"
+  calibration_weeks: 2
+data:
+  dataset_dir: ${BIG_DATA_NYCU_STORAGE}/data/hw2/assignment2
+gnn:
+  lookback_days: 91
+  hidden_dim: 64
+  num_layers: 2
+  dropout: 0.1
+  learning_rate: 0.003
+  weight_decay: 0.0001
+  epochs: 40
+  patience: 8
+  grad_clip: 1.0
+  use_engineered_user_features: true
+  device: cuda
+  seed: 1

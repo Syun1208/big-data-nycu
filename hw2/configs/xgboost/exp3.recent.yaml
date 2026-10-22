@@ -1,0 +1,37 @@
+name: xgboost_exp3_recent
+model_type: xgboost
+data:
+  dataset_dir: ${BIG_DATA_NYCU_STORAGE}/data/hw2/assignment2
+sampling:
+  anchor_cutoff: "2026-11-11 16:00:00"
+  train_start: "2026-07-22 16:00:00"
+  horizon_days: 7
+  feature_gap_hours: 4
+  population_lag_days: 14
+  population_window_days: 90
+  population_min_records: 5
+  calibration_weeks: 1
+  holdout_weeks: 1
+features:
+  windows_days: [7, 14, 28, 56, 91]
+  half_lives_days: [3.0, 14.0]
+  active_weeks: 8
+  recency_cap_days: 365.0
+  repo_lookback_days: 28
+  repo_heat_days: 7
+  collaboration_days: 28
+  received_days: 14
+  open_item_days: 56
+  behavior_weeks: 13
+model:
+  n_estimators: 2000
+  learning_rate: 0.03
+  max_depth: 6
+  min_child_weight: 5.0
+  subsample: 0.8
+  colsample_bytree: 0.8
+  reg_lambda: 1.0
+  early_stopping_rounds: 100
+  device: cuda
+  seed: 42
+  threshold_passes: 3
