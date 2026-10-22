@@ -2,7 +2,6 @@
 set -euo pipefail
 
 PROJECT_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-PYTHON=python
 RUN_DATE=$(date +%F)
 OUTPUT_DIR=outputs/${RUN_DATE}_q3_singular_ranges
 export CUDA_DEVICE_ORDER=PCI_BUS_ID
@@ -19,12 +18,12 @@ else
     RUNS=(--run 16:default "${RUNS[@]}")
 fi
 
-"${PYTHON}" main.py finetune \
+python main.py finetune \
     "${RUNS[@]}" \
     --skip-baseline \
     --output-dir "${OUTPUT_DIR}" \
     "$@"
 
-"${PYTHON}" main.py report \
+python main.py report \
     --results "${REPORT_INPUTS[@]}" \
     --output-dir "${OUTPUT_DIR}/report"

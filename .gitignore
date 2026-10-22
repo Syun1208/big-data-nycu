@@ -3,6 +3,7 @@
 **/logs/
 **/outputs/
 **/runs/
+**/wandb/
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
@@ -13,3 +14,6 @@ __pycache__/
 **/*.zip
 hw1/docs/report
 hw1/docs/Asg1_314540080.pdf
+/*/weights/
+/*/models/
+**/*docs/

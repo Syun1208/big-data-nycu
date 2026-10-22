@@ -1,0 +1,25 @@
+name: sthn_exp2_hybrid_short_windows
+model_type: sthn
+sampling:
+  last_validation_cutoff: "2026-10-07 16:00:00"
+  train_start: "2026-03-04 16:00:00"
+features:
+  windows_days: [1, 3, 7, 14, 28, 56, 91]
+data:
+  dataset_dir: ${BIG_DATA_NYCU_STORAGE}/data/hw2/assignment2
+sthn:
+  lookback_days: 91
+  max_edges: 50
+  window_size: 5
+  time_dims: 100
+  hidden_dims: 100
+  num_layers: 1
+  dropout: 0.1
+  learning_rate: 0.0005
+  weight_decay: 0.0001
+  batch_size: 600
+  epochs: 30
+  patience: 5
+  use_engineered_user_features: true
+  device: cuda
+  seed: 42

@@ -1,0 +1,9 @@
+[tool.pytest]
+minversion = "9.0"
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = ["--import-mode=importlib", "-p", "no:cacheprovider", "-ra"]
+strict = true
+log_cli = true
+log_cli_level = "INFO"
+log_cli_format = "%(message)s"
