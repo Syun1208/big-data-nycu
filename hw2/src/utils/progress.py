@@ -22,7 +22,7 @@ LOAD = Stage(emoji="📥", title="Load tables", colour="cyan")
 FEATURES = Stage(emoji="🧩", title="Build features", colour="green")
 TRAIN = Stage(emoji="🚀", title="Train models", colour="blue")
 GRAPHS = Stage(emoji="📊", title="Render graphs", colour="magenta")
-RELEASES = Stage(emoji="📦", title="Download releases", colour="yellow")
+GH_ARCHIVE = Stage(emoji="📦", title="Download GH Archive", colour="yellow")
 
 
 def create_progress(

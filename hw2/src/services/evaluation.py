@@ -14,8 +14,6 @@ from src.services.scoring import ScoreReport, score_predictions
 logger = logging.getLogger(__name__)
 
 USER_COLUMN = "UserID"
-SAMPLE_TRUTH = Path("examples") / "sample_truth.csv"
-SAMPLE_OUTPUT = Path("examples") / "sample_output.csv"
 
 
 @dataclass(frozen=True, slots=True)
@@ -88,12 +86,9 @@ def log_report(
 
 
 class SubmissionEvaluator:
-    def __init__(self, *, evaluation_dir: Path) -> None:
-        self._evaluation_dir = evaluation_dir
-
-    @property
-    def evaluator(self) -> Path:
-        return self._evaluation_dir / "evaluate.py"
+    def __init__(self, *, evaluator: Path, test_input: Path) -> None:
+        self._evaluator = evaluator
+        self._test_input = test_input
 
     def evaluate(
         self,
@@ -101,12 +96,11 @@ class SubmissionEvaluator:
         prediction: Path,
         truth: Path | None,
     ) -> ScoreReport | None:
-        test_input = self._evaluation_dir / "test_input.csv"
         official = run_official_evaluator(
-            evaluator=self.evaluator,
+            evaluator=self._evaluator,
             prediction=prediction,
             truth=truth,
-            test_input=test_input if test_input.is_file() else None,
+            test_input=self._test_input if self._test_input.is_file() else None,
         )
         for line in official.output.splitlines():
             logger.info("evaluate.py | %s", line)

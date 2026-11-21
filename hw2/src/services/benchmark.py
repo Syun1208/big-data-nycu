@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from src.data.classes.samples import HOLDOUT_SPLIT
 from src.data.classes.settings import EVENTS
 from src.services.comparison import markdown_table
 from src.services.evaluation import USER_COLUMN, run_official_evaluator
@@ -27,6 +28,25 @@ BASELINE_NAMES = {
     "last_28d": "Baseline: active last 28 days",
     "push_only": "Baseline: push only",
 }
+
+
+def read_metrics(*, run_dir: Path) -> dict:
+    path = run_dir / METRICS_FILE
+    return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+
+
+def current_data_runs(*, run_dirs: Sequence[Path]) -> list[Path]:
+    data_ends = {run_dir: read_metrics(run_dir=run_dir).get("data_end") for run_dir in run_dirs}
+    latest = max((data_end for data_end in data_ends.values() if data_end), default=None)
+    kept = [run_dir for run_dir, data_end in data_ends.items() if data_end == latest]
+    if len(kept) < len(run_dirs):
+        logger.info("Skipped %d runs trained on older data, kept %d runs with data until %s", len(run_dirs) - len(kept), len(kept), latest)
+    return kept
+
+
+def holdout_week(*, run_dir: Path) -> str:
+    cutoffs = read_metrics(run_dir=run_dir).get("cutoffs", {})
+    return next((label for label, split in cutoffs.items() if split == HOLDOUT_SPLIT), "unknown")
 
 
 def best_per_method(*, table: pd.DataFrame, submission_run: str | None) -> pd.DataFrame:
@@ -86,10 +106,12 @@ class OutputBenchmark:
         self,
         *,
         evaluator: Path,
+        test_input: Path,
         model_root: Path,
         submission_run: str | None,
     ) -> None:
         self._evaluator = evaluator
+        self._test_input = test_input
         self._model_root = model_root
         self._submission_run = submission_run
 
@@ -99,6 +121,7 @@ class OutputBenchmark:
         run_dirs: Sequence[Path],
         output_dir: Path,
     ) -> pd.DataFrame:
+        run_dirs = current_data_runs(run_dirs=run_dirs)
         rows = []
         for run_dir in run_dirs:
             row = self._score_run(run_dir=run_dir)
@@ -118,7 +141,11 @@ class OutputBenchmark:
         logger.info(
             "📊 Validation week scores from the TA evaluate.py (full table: %s)\n%s",
             output_dir / BENCHMARK_FILE,
-            self._pretty(table=table, baselines=baseline_rows(run_dir=run_dirs[0]) if run_dirs else []),
+            self._pretty(
+                table=table,
+                baselines=baseline_rows(run_dir=run_dirs[0]) if run_dirs else [],
+                week=holdout_week(run_dir=run_dirs[0]) if run_dirs else "unknown",
+            ),
         )
         return table
 
@@ -127,6 +154,7 @@ class OutputBenchmark:
         *,
         table: pd.DataFrame,
         baselines: list[dict],
+        week: str,
     ) -> str:
         shown = best_per_method(table=table, submission_run=self._submission_run)
         names = shown["method"]
@@ -150,7 +178,7 @@ class OutputBenchmark:
             ],
             highlight=highlight,
             dimmed=dimmed,
-            title="Best run per method, validation week 10/07, Score = (macro-F1 + micro-F1) / 2",
+            title=f"Best run per method, validation week from {week} UTC, Score = (macro-F1 + micro-F1) / 2",
         )
 
     def _score_run(self, *, run_dir: Path) -> dict | None:
@@ -171,7 +199,7 @@ class OutputBenchmark:
         if official.returncode != 0:
             logger.error("evaluate.py rejected %s: %s", output_path, official.output)
             return None
-        metrics = json.loads((run_dir / METRICS_FILE).read_text(encoding="utf-8")) if (run_dir / METRICS_FILE).is_file() else {}
+        metrics = read_metrics(run_dir=run_dir)
         row = {
             "method": metrics.get("method_name") or method_name(model=metrics.get("model", run_dir.name)),
             "run": run_dir.name,
@@ -195,12 +223,11 @@ class OutputBenchmark:
         path = run_dir / OUTPUT_FILE
         if not path.is_file():
             return {"test_format": "missing"}
-        test_input = self._evaluator.parent / "test_input.csv"
         official = run_official_evaluator(
             evaluator=self._evaluator,
             prediction=path,
             truth=None,
-            test_input=test_input if test_input.is_file() else None,
+            test_input=self._test_input if self._test_input.is_file() else None,
         )
         output = pd.read_csv(path)
         stats = {"test_format": "ok" if official.returncode == 0 else "ERROR", "test_users": len(output)}

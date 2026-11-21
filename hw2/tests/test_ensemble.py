@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -8,11 +9,15 @@ import pandas as pd
 import pytest
 
 from src.data.classes.settings import EVENTS
-from src.services.ensemble import load_split, simplex_grid
+from src.services.benchmark import current_data_runs, holdout_week
+from src.services.ensemble import load_split, read_member_metrics, simplex_grid
+from src.services.training import METRICS_FILE
 
 SPLIT_FILE = "split.parquet"
 QUARTER = 0.25
 THREE_MEMBER_QUARTER_GRID_SIZE = 15
+NEW_DATA_END = "2026-11-21 11:59:59"
+OLD_DATA_END = "2026-10-30 12:00:00"
 
 
 def write_split(*, path: Path, users: Sequence[int], seed: int) -> None:
@@ -72,3 +77,26 @@ def test_members_with_different_users_are_rejected(member_dirs: list[Path]) -> N
     write_split(path=member_dirs[1] / SPLIT_FILE, users=[1, 3], seed=1)
     with pytest.raises(ValueError, match="different users"):
         load_split(run_dirs=member_dirs, name=SPLIT_FILE)
+
+
+def write_metrics(*, folder: Path, data_end: str) -> None:
+    payload = {"data_end": data_end, "cutoffs": {"2026-10-31 16:00": "calibration", "2026-11-07 16:00": "holdout"}}
+    (folder / METRICS_FILE).write_text(json.dumps(payload), encoding="utf-8")
+
+
+def test_members_trained_on_different_data_are_rejected(member_dirs: list[Path]) -> None:
+    write_metrics(folder=member_dirs[0], data_end=NEW_DATA_END)
+    write_metrics(folder=member_dirs[1], data_end=OLD_DATA_END)
+    with pytest.raises(ValueError, match="different data"):
+        read_member_metrics(run_dirs=member_dirs)
+
+
+def test_benchmark_keeps_runs_on_the_latest_data(member_dirs: list[Path]) -> None:
+    write_metrics(folder=member_dirs[0], data_end=NEW_DATA_END)
+    write_metrics(folder=member_dirs[1], data_end=OLD_DATA_END)
+    assert current_data_runs(run_dirs=member_dirs) == [member_dirs[0]]
+
+
+def test_holdout_week_is_read_from_the_run(member_dirs: list[Path]) -> None:
+    write_metrics(folder=member_dirs[0], data_end=NEW_DATA_END)
+    assert holdout_week(run_dir=member_dirs[0]) == "2026-11-07 16:00"

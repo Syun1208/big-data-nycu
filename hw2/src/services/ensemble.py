@@ -35,6 +35,15 @@ def simplex_grid(
     return grid
 
 
+def read_member_metrics(*, run_dirs: Sequence[Path]) -> list[dict]:
+    metrics = [json.loads((run_dir / METRICS_FILE).read_text(encoding="utf-8")) for run_dir in run_dirs]
+    data_ends = {run_dir.name: member.get("data_end") for run_dir, member in zip(run_dirs, metrics)}
+    if len(set(data_ends.values())) > 1:
+        lines = "\n".join(f"  {name}: data until {data_end}" for name, data_end in data_ends.items())
+        raise ValueError(f"Ensemble members were trained on different data. Retrain the stale members:\n{lines}")
+    return metrics
+
+
 def load_split(
     *,
     run_dirs: Sequence[Path],
@@ -56,11 +65,13 @@ class EnsembleBuilder:
         *,
         tuner: ThresholdTuner,
         step: float,
-        evaluation_dir: Path,
+        evaluator: Path,
+        test_input: Path,
     ) -> None:
         self._tuner = tuner
         self._step = step
-        self._evaluation_dir = evaluation_dir
+        self._evaluator = evaluator
+        self._test_input = test_input
 
     def build(
         self,
@@ -68,6 +79,7 @@ class EnsembleBuilder:
         run_dirs: Sequence[Path],
         output_dir: Path,
     ) -> dict:
+        members = read_member_metrics(run_dirs=run_dirs)
         calibration, calibration_truth, _ = load_split(run_dirs=run_dirs, name=CALIBRATION_FILE)
         holdout, holdout_truth, holdout_keys = load_split(run_dirs=run_dirs, name=HOLDOUT_FILE)
         best = None
@@ -97,11 +109,8 @@ class EnsembleBuilder:
             parents=True,
             exist_ok=True,
         )
-        member_metrics = json.loads((run_dirs[0] / METRICS_FILE).read_text(encoding="utf-8"))
         weight_by_run = dict(zip((run_dir.name for run_dir in run_dirs), weights))
-        member_models = {
-            run_dir.name: json.loads((run_dir / METRICS_FILE).read_text(encoding="utf-8")).get("model", run_dir.name) for run_dir in run_dirs
-        }
+        member_models = {run_dir.name: member.get("model", run_dir.name) for run_dir, member in zip(run_dirs, members)}
         metrics = {
             "experiment": "ensemble",
             "model": ENSEMBLE_MODEL,
@@ -113,7 +122,9 @@ class EnsembleBuilder:
             "thresholds": dict(zip(EVENTS, thresholds)),
             "calibration": calibration_report.as_dict(events=EVENTS),
             "holdout": holdout_report.as_dict(events=EVENTS),
-            "holdout_baselines": member_metrics["holdout_baselines"],
+            "data_end": members[0]["data_end"],
+            "cutoffs": members[0]["cutoffs"],
+            "holdout_baselines": members[0]["holdout_baselines"],
             "train_minutes": None,
         }
         logger.info("🧪 %s = %s", metrics["method_name"], metrics["recipe"])
@@ -168,7 +179,7 @@ class EnsembleBuilder:
         frames = [pd.read_csv(run_dir / PROBABILITY_FILE).set_index(USER_COLUMN).sort_index() for run_dir in run_dirs]
         users = frames[0].index
         if not all(frame.index.equals(users) for frame in frames):
-            raise ValueError("Members predicted different test users. Predict all members on the same data release.")
+            raise ValueError("Members predicted different test users. Predict all members on the same data.")
         mixed = sum(weight * frame[list(EVENTS)].to_numpy() for weight, frame in zip(weights, frames))
         predictions = pd.DataFrame(
             apply_thresholds(
@@ -187,7 +198,7 @@ class EnsembleBuilder:
         )
         pd.DataFrame(mixed, columns=list(EVENTS), index=users).reset_index().to_csv(output_dir / PROBABILITY_FILE, index=False)
         logger.info("💾 Wrote %s (%d users)", output_path, len(predictions))
-        SubmissionEvaluator(evaluation_dir=self._evaluation_dir).evaluate(
+        SubmissionEvaluator(evaluator=self._evaluator, test_input=self._test_input).evaluate(
             prediction=output_path,
             truth=None,
         )

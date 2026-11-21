@@ -15,23 +15,35 @@ class DataSettings:
     repository_url: str = "https://github.com/nycubigdata-2026fall/BigData2026-Assignment2.git"
 
     @property
-    def db_dir(self) -> Path:
-        return self.dataset_dir / "data" / "db"
+    def tables_dir(self) -> Path:
+        return self.dataset_dir.with_name("tables")
 
     @property
-    def evaluation_dir(self) -> Path:
-        return self.dataset_dir / "evaluation"
+    def db_dir(self) -> Path:
+        return self.tables_dir / "db"
+
+    @property
+    def preprocess_script(self) -> Path:
+        return self.dataset_dir / "scripts" / "preprocess.py"
+
+    @property
+    def evaluator(self) -> Path:
+        return self.dataset_dir / "scripts" / "evaluate.py"
+
+    @property
+    def test_input(self) -> Path:
+        return self.dataset_dir / "submission" / "test_input.csv"
 
 
 @dataclass(frozen=True, slots=True)
 class SamplingSettings:
-    anchor_cutoff: str = "2026-11-11 16:00:00"
+    anchor_cutoff: str = "2026-11-21 16:00:00"
     train_start: str = "2026-06-03 16:00:00"
     horizon_days: int = 7
     feature_gap_hours: int = 4
     population_lag_days: int = 14
     population_window_days: int = 90
-    population_min_records: int = 5
+    population_min_records: int = 1
     calibration_weeks: int = 1
     holdout_weeks: int = 1
     last_validation_cutoff: str = ""
@@ -176,7 +188,3 @@ class ExperimentSettings:
 class GraphSettings:
     name: str
     data: DataSettings
-    github_user_ids: tuple[int, ...] = (22996444, 28983449)
-    start_time: str = "2026-09-15 00:00:00"
-    end_time: str = "2026-09-17 00:00:00"
-    max_text_length: int = 28

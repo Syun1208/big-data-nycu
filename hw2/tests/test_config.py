@@ -11,7 +11,6 @@ STORAGE_VARIABLE = "BIG_DATA_NYCU_STORAGE"
 STORAGE = Path("/mnt/storage")
 CONFIG_ROOT = Path(__file__).resolve().parents[1] / "configs"
 EXPERIMENT_CONFIGS = sorted(path for path in CONFIG_ROOT.glob("*/*.yaml") if path.parent.name != "graphs")
-Q1_GITHUB_USER_IDS = (22996444, 28983449)
 
 
 @pytest.fixture
@@ -50,6 +49,6 @@ def test_missing_storage_variable_is_rejected(monkeypatch: pytest.MonkeyPatch) -
         load_experiment_settings(path=CONFIG_ROOT / "xgboost/exp1.yaml")
 
 
-def test_graph_config_lists_q1_users(storage: Path) -> None:
+def test_graph_config_reads_data_from_storage(storage: Path) -> None:
     settings = load_graph_settings(path=CONFIG_ROOT / "graphs/render.yaml")
-    assert settings.github_user_ids == Q1_GITHUB_USER_IDS
+    assert settings.data.db_dir.is_relative_to(storage / "data/hw2")

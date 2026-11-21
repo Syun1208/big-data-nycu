@@ -11,13 +11,13 @@ from src.services.sampling import LabelBuilder, PopulationSelector, SamplePlanne
 from tests.factories import at
 
 DATA_END = pd.Timestamp("2026-10-21 12:00:00")
-TEST_DATA_END = pd.Timestamp("2026-11-11 12:00:00")
-TEST_POPULATION_TIME = pd.Timestamp("2026-10-28 12:00:00")
+TEST_DATA_END = pd.Timestamp("2026-11-21 12:00:00")
+TEST_POPULATION_TIME = pd.Timestamp("2026-11-07 12:00:00")
 LATER_DATA_END = pd.Timestamp("2026-10-30 12:00:00")
-PINNED_VALIDATION = pd.Timestamp("2026-10-07 16:00:00")
-PINNED_CALIBRATION = pd.Timestamp("2026-09-30 16:00:00")
+PINNED_VALIDATION = pd.Timestamp("2026-10-03 16:00:00")
+PINNED_CALIBRATION = pd.Timestamp("2026-09-26 16:00:00")
 ONE_WEEK = pd.Timedelta(weeks=1)
-WEDNESDAY = 2
+SATURDAY = 5
 CUTOFF_HOUR_UTC = 16
 
 
@@ -74,8 +74,8 @@ def test_training_cutoffs_are_one_week_apart(cutoff_times: pd.DatetimeIndex) -> 
     assert set(cutoff_times.to_series().diff().dropna()) == {ONE_WEEK}
 
 
-def test_training_cutoffs_fall_on_wednesday_afternoon_utc(cutoff_times: pd.DatetimeIndex) -> None:
-    assert set(cutoff_times.dayofweek) == {WEDNESDAY}
+def test_training_cutoffs_fall_on_saturday_afternoon_utc(cutoff_times: pd.DatetimeIndex) -> None:
+    assert set(cutoff_times.dayofweek) == {SATURDAY}
     assert set(cutoff_times.hour) == {CUTOFF_HOUR_UTC}
 
 

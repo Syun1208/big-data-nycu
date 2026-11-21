@@ -101,21 +101,36 @@ def run_download(args: argparse.Namespace, storage: ProjectStorage) -> int:
     from src.services.data_download import DatasetDownloader
 
     settings = load_experiment_settings(path=args.config)
-    snapshot_dir = hw2_folder(storage=storage, name="data") / "snapshots" if args.keep_snapshot else None
-    DatasetDownloader(settings=settings.data).download(snapshot_dir=snapshot_dir)
+    DatasetDownloader(settings=settings.data).download()
     return EXIT_OK
 
 
-def run_download_history(args: argparse.Namespace, storage: ProjectStorage) -> int:
-    from src.services.release_history import ReleaseHistoryDownloader
+def run_download_gharchive(args: argparse.Namespace, storage: ProjectStorage) -> int:
+    import pandas as pd
+
+    from src.services.gharchive import GHArchiveDownloader
+
+    GHArchiveDownloader(
+        raw_dir=args.raw_dir,
+        workers=args.workers,
+        retries=args.retries,
+        min_free_gb=args.min_free_gb,
+    ).download(start=pd.Timestamp(args.start), end=pd.Timestamp(args.end))
+    return EXIT_OK
+
+
+def run_preprocess(args: argparse.Namespace, storage: ProjectStorage) -> int:
+    import pandas as pd
+
+    from src.services.preprocessing import TablePreprocessor
 
     settings = load_experiment_settings(path=args.config)
-    ReleaseHistoryDownloader(
-        repository_url=settings.data.repository_url,
-        snapshot_dir=hw2_folder(storage=storage, name="data") / "snapshots",
-        work_dir=hw2_folder(storage=storage, name="cache") / "release_fetch",
-        workers=args.workers,
-    ).download()
+    TablePreprocessor(
+        settings=settings.data,
+        raw_dir=args.raw_dir,
+        start=pd.Timestamp(args.start),
+        end=pd.Timestamp(args.end),
+    ).run()
     return EXIT_OK
 
 
@@ -197,9 +212,8 @@ def run_evaluate(args: argparse.Namespace, storage: ProjectStorage) -> int:
     from src.services.evaluation import SubmissionEvaluator
 
     settings = load_experiment_settings(path=args.config)
-    evaluation_dir = settings.data.evaluation_dir
     truth = None if args.format_only else args.truth
-    SubmissionEvaluator(evaluation_dir=evaluation_dir).evaluate(
+    SubmissionEvaluator(evaluator=settings.data.evaluator, test_input=settings.data.test_input).evaluate(
         prediction=args.pred,
         truth=truth,
     )
@@ -217,7 +231,8 @@ def run_ensemble(args: argparse.Namespace, storage: ProjectStorage) -> int:
     EnsembleBuilder(
         tuner=build_tuner(settings=settings),
         step=args.step,
-        evaluation_dir=settings.data.evaluation_dir,
+        evaluator=settings.data.evaluator,
+        test_input=settings.data.test_input,
     ).build(
         run_dirs=run_dirs,
         output_dir=output_root / f"{date.today():%Y-%m-%d}_{APP_NAME}.{args.name}",
@@ -242,7 +257,8 @@ def run_benchmark(args: argparse.Namespace, storage: ProjectStorage) -> int:
         if not path.parent.name.startswith(args.skip_prefix)
     )
     OutputBenchmark(
-        evaluator=settings.data.evaluation_dir / "evaluate.py",
+        evaluator=settings.data.evaluator,
+        test_input=settings.data.test_input,
         model_root=hw2_folder(storage=storage, name="models"),
         submission_run=read_submission_run(output_root=output_root),
     ).run(
@@ -278,14 +294,11 @@ def run_diagnose(args: argparse.Namespace, storage: ProjectStorage) -> int:
 
 
 def run_graphs(args: argparse.Namespace, storage: ProjectStorage) -> int:
-    from src.data.loaders.relational_db import ParquetDatabaseLoader
     from src.services.graph_renderer import GraphReport
 
     settings = load_graph_settings(path=args.config)
-    database = ParquetDatabaseLoader(db_dir=settings.data.db_dir).load()
     GraphReport(
         settings=settings,
-        database=database,
         output_dir=args.output_dir or hw2_folder(storage=storage, name="outputs") / (args.run_name or run_name(config=args.config)),
     ).run()
     return EXIT_OK
@@ -296,15 +309,25 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--verbose", action="store_true", help="show debug logs in the console")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    download = subparsers.add_parser("download-data", help="delete the old TA clone and clone the latest release")
+    download = subparsers.add_parser("download-data", help="delete the old TA clone and clone the latest TA repository")
     download.add_argument("--config", type=existing_file, default=DEFAULT_EXPERIMENT_CONFIG)
-    download.add_argument("--keep-snapshot", action="store_true", help="copy the old data/db to storage before deleting it")
     download.set_defaults(handler=run_download)
 
-    history = subparsers.add_parser("download-history", help="save every daily data release still on GitHub as a snapshot")
-    history.add_argument("--config", type=existing_file, default=DEFAULT_EXPERIMENT_CONFIG)
-    history.add_argument("--workers", type=int, default=6, help="releases fetched at the same time")
-    history.set_defaults(handler=run_download_history)
+    archive = subparsers.add_parser("download-gharchive", help="download the GH Archive hour files, skipping those already saved")
+    archive.add_argument("--raw-dir", type=Path, required=True)
+    archive.add_argument("--start", required=True, help="first hour in UTC")
+    archive.add_argument("--end", required=True, help="end hour in UTC, not included")
+    archive.add_argument("--workers", type=int, default=8, help="files downloaded at the same time")
+    archive.add_argument("--retries", type=int, default=5)
+    archive.add_argument("--min-free-gb", type=float, default=20.0, help="stop downloading below this free space")
+    archive.set_defaults(handler=run_download_gharchive)
+
+    preprocess = subparsers.add_parser("preprocess", help="build the 8 tables with the TA preprocess.py")
+    preprocess.add_argument("--config", type=existing_file, default=DEFAULT_EXPERIMENT_CONFIG)
+    preprocess.add_argument("--raw-dir", type=Path, required=True)
+    preprocess.add_argument("--start", required=True, help="first hour in UTC")
+    preprocess.add_argument("--end", required=True, help="end hour in UTC, not included")
+    preprocess.set_defaults(handler=run_preprocess)
 
     features = subparsers.add_parser("build-features", help="build and cache the weekly samples shared by all models")
     features.add_argument("--config", type=existing_file, default=DEFAULT_EXPERIMENT_CONFIG)

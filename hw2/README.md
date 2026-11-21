@@ -27,6 +27,11 @@ bash scripts/download_data.sh
 ```
 
 
+## Data Source
+
+[GH Archive](https://www.gharchive.org/)
+
+
 ## 4. Train
 
 Set `GPU_ID` in `scripts/train.sh` to a free GPU first (check `nvidia-smi`).
@@ -45,12 +50,6 @@ bash scripts/test.sh
 ${BIG_DATA_NYCU_STORAGE}/outputs/hw2/submission/output_314540080.csv
 ```
 
-Final submission on 11/11 after the 21:00 update:
-
-```bash
-bash scripts/download_data.sh
-bash scripts/test.sh
-```
 
 ## 6. Drawing Graphs
 

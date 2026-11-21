@@ -1,7 +1,7 @@
 name: rdl_gnn_exp2_hybrid
 model_type: rdl_gnn
 sampling:
-  last_validation_cutoff: "2026-10-07 16:00:00"
+  last_validation_cutoff: "2026-11-07 16:00:00"
 data:
   dataset_dir: ${BIG_DATA_NYCU_STORAGE}/data/hw2/assignment2
 gnn:

@@ -15,7 +15,7 @@ from tests.factories import build_database
 
 ROOT = Path(__file__).resolve().parents[1]
 STORAGE_VARIABLE = "BIG_DATA_NYCU_STORAGE"
-EVALUATION_SUBDIR = Path("data/hw2/assignment2/evaluation")
+TA_REPOSITORY_SUBDIR = Path("data/hw2/assignment2")
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -43,16 +43,31 @@ def event_log(database: RelationalDatabase) -> EventLog:
 
 
 @pytest.fixture(scope="session")
-def evaluation_dir() -> Path:
-    folder = Path(os.environ.get(STORAGE_VARIABLE, "/nonexistent")) / EVALUATION_SUBDIR
-    if not (folder / "evaluate.py").is_file():
+def ta_repository() -> Path:
+    folder = Path(os.environ.get(STORAGE_VARIABLE, "/nonexistent")) / TA_REPOSITORY_SUBDIR
+    if not (folder / "scripts" / "evaluate.py").is_file():
         pytest.skip("TA evaluate.py not downloaded, run bash scripts/download_data.sh")
     return folder
 
 
 @pytest.fixture(scope="session")
-def ta_evaluate(evaluation_dir: Path) -> ModuleType:
-    spec = importlib.util.spec_from_file_location("ta_evaluate", evaluation_dir / "evaluate.py")
+def evaluator(ta_repository: Path) -> Path:
+    return ta_repository / "scripts" / "evaluate.py"
+
+
+@pytest.fixture(scope="session")
+def test_input(ta_repository: Path) -> Path:
+    return ta_repository / "submission" / "test_input.csv"
+
+
+@pytest.fixture(scope="session")
+def sample_submission(ta_repository: Path) -> Path:
+    return ta_repository / "submission" / "sample_submission.csv"
+
+
+@pytest.fixture(scope="session")
+def ta_evaluate(evaluator: Path) -> ModuleType:
+    spec = importlib.util.spec_from_file_location("ta_evaluate", evaluator)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module

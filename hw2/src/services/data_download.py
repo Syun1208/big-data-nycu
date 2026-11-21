@@ -46,16 +46,13 @@ class DatasetDownloader:
     def __init__(self, *, settings: DataSettings) -> None:
         self._settings = settings
 
-    def download(self, *, snapshot_dir: Path | None) -> Path:
+    def download(self) -> Path:
         target = self._settings.dataset_dir
         if target.exists() and read_local_head(folder=target) == read_remote_head(repository_url=self._settings.repository_url):
-            logger.info("✅ %s is already the latest release %s, nothing to download", target, read_commit_time(folder=target))
+            logger.info("✅ %s is already the latest TA repository %s, nothing to download", target, read_commit_time(folder=target))
             return target
         if target.exists():
-            self._remove_previous(
-                target=target,
-                snapshot_dir=snapshot_dir,
-            )
+            self._remove_previous(target=target)
         target.parent.mkdir(
             parents=True,
             exist_ok=True,
@@ -65,25 +62,12 @@ class DatasetDownloader:
             ["git", "clone", "--depth", "1", self._settings.repository_url, str(target)],
             check=True,
         )
-        logger.info("✅ Dataset release %s", read_commit_time(folder=target))
+        logger.info("✅ TA repository %s", read_commit_time(folder=target))
         return target
 
-    def _remove_previous(
-        self,
-        *,
-        target: Path,
-        snapshot_dir: Path | None,
-    ) -> None:
+    def _remove_previous(self, *, target: Path) -> None:
         readme = target / "README.md"
         if not (target / ".git").is_dir() or not readme.is_file() or not readme.read_text(encoding="utf-8").startswith(EXPECTED_README_TITLE):
-            raise RuntimeError(f"{target} does not look like the TA dataset clone. Remove it by hand if it is safe.")
-        if snapshot_dir is not None:
-            destination = snapshot_dir / read_commit_time(folder=target)
-            if not destination.exists():
-                shutil.copytree(
-                    self._settings.db_dir,
-                    destination / "data" / "db",
-                )
-                logger.info("📦 Kept the previous release in %s", destination)
+            raise RuntimeError(f"{target} does not look like the TA repository clone. Remove it by hand if it is safe.")
         shutil.rmtree(target)
-        logger.info("🗑️ Removed the previous release %s", target)
+        logger.info("🗑️ Removed the previous TA repository %s", target)

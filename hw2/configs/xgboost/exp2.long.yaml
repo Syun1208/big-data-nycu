@@ -3,14 +3,14 @@ model_type: xgboost
 data:
   dataset_dir: ${BIG_DATA_NYCU_STORAGE}/data/hw2/assignment2
 sampling:
-  last_validation_cutoff: "2026-10-07 16:00:00"
-  anchor_cutoff: "2026-11-11 16:00:00"
+  last_validation_cutoff: "2026-11-07 16:00:00"
+  anchor_cutoff: "2026-11-21 16:00:00"
   train_start: "2026-03-04 16:00:00"
   horizon_days: 7
   feature_gap_hours: 4
   population_lag_days: 14
   population_window_days: 90
-  population_min_records: 5
+  population_min_records: 1
   calibration_weeks: 1
   holdout_weeks: 1
 features:

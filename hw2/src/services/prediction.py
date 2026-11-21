@@ -18,7 +18,6 @@ from src.services.training import RunPaths, read_thresholds
 
 logger = logging.getLogger(__name__)
 
-TEST_INPUT_FILE = "test_input.csv"
 OUTPUT_FILE = f"output_{STUDENT_ID}.csv"
 PROBABILITY_FILE = f"output_{STUDENT_ID}_probabilities.csv"
 
@@ -28,7 +27,7 @@ def read_test_users(
     data_settings: DataSettings,
     database: RelationalDatabase,
 ) -> tuple[pd.Series | None, pd.Index | None]:
-    path = data_settings.evaluation_dir / TEST_INPUT_FILE
+    path = data_settings.test_input
     if not path.is_file():
         logger.warning("%s is not released yet. Predicting for the users picked by the population rule.", path)
         return None, None
@@ -124,7 +123,7 @@ class SubmissionPredictor:
             len(predictions),
             ", ".join(f"{event}={predictions[event].mean():.2f}" for event in EVENTS),
         )
-        SubmissionEvaluator(evaluation_dir=self._data_settings.evaluation_dir).evaluate(
+        SubmissionEvaluator(evaluator=self._data_settings.evaluator, test_input=self._data_settings.test_input).evaluate(
             prediction=output_path,
             truth=None,
         )

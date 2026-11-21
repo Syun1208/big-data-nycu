@@ -3,8 +3,8 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-GPU_IDS=1
-STORAGE=/mnt/HDD6/longpm/big-data-nycu
+GPU_IDS=6
+STORAGE=/mnt/HDD1/longpm/big-data-nycu
 PRED=${STORAGE}/outputs/hw2/submission/output_314540080.csv
 TRUTH=
 ENSEMBLE_CONFIGS=(
@@ -16,9 +16,6 @@ ENSEMBLE_CONFIGS=(
     configs/rdl_gnn/exp6.gat.hybrid.short_windows.seed42.yaml
     configs/rdl_gnn/exp7.transformer.hybrid.short_windows.seed1.yaml
     configs/rdl_gnn/exp7.transformer.hybrid.short_windows.seed42.yaml
-)
-RELEASE_1021_CONFIGS=(
-    configs/sthn/exp4.hybrid.short_windows.release_1021.yaml
 )
 CONFIGS=(
     configs/sthn/exp2.hybrid.short_windows.yaml
@@ -47,7 +44,7 @@ python main.py compare \
     --configs "${CONFIGS[@]}"
 
 python main.py diagnose \
-    --configs "${CONFIGS[@]}" "${RELEASE_1021_CONFIGS[@]}"
+    --configs "${CONFIGS[@]}"
 
 if [[ -n "${TRUTH}" ]]; then
     python main.py evaluate \
